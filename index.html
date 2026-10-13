@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>90-Day Dev Bootcamp</title>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f2f5fc;--paper:#fff;--ink:#1d2358;--mute:#5d6590;--line:#d5dcf0;--acc:#2f3bd0;--accT:#fff;--red:#d8514b;--l1:#dfe4fb;--l2:#9aa6f1;--ok:#2f3bd0;--warn:#b86e00;box-sizing:border-box;padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root{--bg:#0f1224;--paper:#171b34;--ink:#e6e9ff;--mute:#9aa2d4;--line:#2a3058;--acc:#8e9bff;--accT:#0f1224;--red:#ff7a73;--l1:#232a55;--l2:#5967d6;--ok:#8e9bff;--warn:#f0b04a}}
+*,*:before,*:after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.5 "Source Sans 3",system-ui,sans-serif}
+.wrap{max-width:1000px;margin:0 auto;padding:16px 16px 48px}
+header{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center;border-bottom:2px solid var(--red);padding-bottom:10px;margin-bottom:16px}
+h1{font:700 2rem/1 Caveat,cursive;margin:0}h2{font:700 1.4rem/1.2 Caveat,cursive;margin:0 0 8px}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:16px}
+button,input{font:inherit;color:var(--ink)}
+button{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:8px 14px;cursor:pointer}
+button.pri{background:var(--acc);color:var(--accT);border-color:var(--acc)}
+input[type=text],input[type=email],input[type=password],input[type=date]{width:100%;padding:10px;margin:4px 0 10px;background:var(--paper);border:1px solid var(--line);border-radius:8px}
+:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.mute{color:var(--mute)}.err{color:var(--red)}
+.days{display:grid;grid-template-columns:repeat(10,1fr);gap:4px;margin:10px 0}
+.days button{padding:0;aspect-ratio:1;font-size:.8rem}
+.days .full{background:var(--ok);color:var(--accT)}.days .part{background:var(--l2)}.days .sel{outline:3px solid var(--ink);outline-offset:1px}.days .lock{opacity:.35}
+label.it{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);cursor:pointer}
+label.it input{width:22px;height:22px;flex:none;accent-color:var(--acc)}
+.snap{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.snap div{border:1px solid var(--line);border-radius:10px;padding:12px}
+.snap b{display:block;font:700 2.2rem/1 Caveat,cursive}
+.snap small{display:block;margin-top:6px;word-break:break-word}
+.tw{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+.strip{display:inline-flex;gap:1px;vertical-align:middle}.strip i{width:4px;height:16px;background:var(--l1)}.strip i.p{background:var(--l2)}.strip i.f{background:var(--ok)}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header><h1>90-Day Dev Bootcamp</h1><div><span id="who" class="mute"></span> <button id="out" hidden>Sign out</button></div></header>
+
+<section id="auth" class="card" hidden style="max-width:420px;margin:auto">
+  <h2 id="authT">Sign in</h2>
+  <form id="authF">
+    <div id="nameRow" hidden><label for="nm">Full name</label><input id="nm" type="text" autocomplete="name"></div>
+    <label for="em">Email</label><input id="em" type="email" autocomplete="email" required>
+    <label for="pw">Password (6+ characters)</label><input id="pw" type="password" autocomplete="current-password" minlength="6" required>
+    <button class="pri" id="go" type="submit">Sign in</button>
+    <button type="button" id="swap">Create an account</button>
+    <p id="msg" class="err" role="alert"></p>
+  </form>
+</section>
+
+<section id="student" hidden>
+  <div class="card">
+    <h2 id="sTitle"></h2>
+    <p class="mute" id="sSub"></p>
+    <div class="days" id="grid"></div>
+  </div>
+  <div class="card">
+    <h2 id="dTitle"></h2><p class="mute" id="dPhase"></p>
+    <div id="items"></div>
+    <p class="err" id="sErr" role="alert"></p>
+  </div>
+</section>
+
+<section id="admin" hidden>
+  <div class="card">
+    <h2 id="aTitle">Today</h2>
+    <div class="snap">
+      <div><b id="nDone">0</b>Finished everything<small id="lDone" class="mute"></small></div>
+      <div><b id="nPart">0</b>Started, not finished<small id="lPart" class="mute"></small></div>
+      <div><b id="nNone">0</b>Not started<small id="lNone" class="mute"></small></div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Class progress</h2>
+    <div class="tw"><table><thead><tr><th>Student</th><th>Days complete</th><th>Behind by</th><th>Last active</th><th>Days 1 to 90</th></tr></thead><tbody id="rows"></tbody></table></div>
+  </div>
+  <div class="card">
+    <h2>Course start date</h2>
+    <p class="mute">Day 1 of the 90 days. Students unlock one new day per calendar day from this date.</p>
+    <input type="date" id="sd" style="max-width:220px"> <button id="saveSd">Save start date</button> <button id="refresh">Refresh</button>
+  </div>
+</section>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="curriculum.js"></script>
+<script>
+// 1. PASTE YOUR SUPABASE PROJECT VALUES (Project Settings > API). The anon key is meant to be public.
+// const SB_URL="PASTE_PROJECT_URL", SB_KEY="PASTE_ANON_KEY";
+const SB_URL="https://dktyiiagfxaygdsmetmd.supabase.co", SB_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRrdHlpaWFnZnhheWdkc21ldG1kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE5MjE3NTgsImV4cCI6MjEwNzQ5Nzc1OH0.R_wJQczUsKfpTe6DblwjiqlzjCJY83z_P6ExaXy0vTY";
+const sb=supabase.createClient(SB_URL,SB_KEY);
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+let me,prof,start,done={},sel=1,signup=false;
+
+function dayNow(){const[y,m,d]=start.split("-").map(Number),n=new Date();n.setHours(0,0,0,0);return Math.round((n-new Date(y,m-1,d))/864e5)+1}
+const need=d=>d>=1&&d<=90?dayItems(d).length:99;
+const show=id=>["auth","student","admin"].forEach(x=>$(x).hidden=x!==id);
+
+$("swap").onclick=()=>{signup=!signup;$("authT").textContent=signup?"Create account":"Sign in";$("go").textContent=signup?"Create account":"Sign in";$("swap").textContent=signup?"I already have an account":"Create an account";$("nameRow").hidden=!signup;$("msg").textContent=""};
+$("authF").onsubmit=async e=>{e.preventDefault();$("msg").textContent="";const email=$("em").value,password=$("pw").value;
+  const r=signup?await sb.auth.signUp({email,password,options:{data:{full_name:$("nm").value.trim()||"Student"}}}):await sb.auth.signInWithPassword({email,password});
+  if(r.error){$("msg").textContent=r.error.message;return}
+  if(signup&&!r.data.session){$("msg").textContent="Check your email to confirm your account, then sign in.";return}
+  boot()};
+$("out").onclick=async()=>{await sb.auth.signOut();location.reload()};
+
+async function boot(){
+  const{data:{session}}=await sb.auth.getSession();
+  if(!session){show("auth");return}
+  me=session.user;$("out").hidden=false;
+  const[p,s]=await Promise.all([sb.from("profiles").select("*").eq("id",me.id).single(),sb.from("settings").select("start_date").eq("id",1).single()]);
+  if(p.error||s.error){show("auth");$("msg").textContent="Could not load your profile. Did you run schema.sql?";return}
+  prof=p.data;start=s.data.start_date;$("who").textContent=prof.full_name+(prof.role==="admin"?" (director)":"");
+  prof.role==="admin"?adminInit():studentInit();
+}
+
+/* ---------- Student ---------- */
+async function studentInit(){
+  const r=await sb.from("progress").select("day,item");
+  done={};(r.data||[]).forEach(x=>done[x.day+"-"+x.item]=1);
+  const t=Math.min(Math.max(dayNow(),1),90);sel=t;show("student");paint();
+}
+const cnt=d=>{let c=0;for(let i=1;i<=need(d);i++)if(done[d+"-"+i])c++;return c};
+function paint(){
+  const t=dayNow(),cap=Math.min(t,90);
+  let full=0;for(let d=1;d<=90;d++)if(cnt(d)===need(d))full++;
+  $("sTitle").textContent=full+" of 90 days complete";
+  $("sSub").textContent=t<1?"Your course starts on "+start+".":"You are on day "+cap+". Tick each item only when you have really finished it.";
+  const g=$("grid");g.innerHTML="";
+  for(let d=1;d<=90;d++){const b=document.createElement("button"),c=cnt(d);b.textContent=d;
+    b.className=(c===need(d)?"full":c?"part":"")+(d===sel?" sel":"")+(d>t?" lock":"");b.disabled=d>t;
+    b.setAttribute("aria-label","Day "+d+", "+c+" of "+need(d)+" done");b.onclick=()=>{sel=d;paint()};g.append(b)}
+  $("dTitle").textContent="Day "+sel;$("dPhase").textContent="Week "+(Math.floor((sel-1)/7)+1)+": "+WEEKS[Math.min(Math.floor((sel-1)/7),WEEKS.length-1)]+". "+cnt(sel)+" of "+need(sel)+" ticked";
+  const L=$("items");L.innerHTML="";
+  dayItems(sel).forEach((txt,i)=>{const l=document.createElement("label");l.className="it";const k=document.createElement("input");k.type="checkbox";k.checked=!!done[sel+"-"+(i+1)];
+    const s=document.createElement("span");s.textContent=txt;k.onchange=()=>tick(sel,i+1,k);l.append(k,s);L.append(l)});
+}
+async function tick(d,i,box){
+  $("sErr").textContent="";const key=d+"-"+i,want=box.checked;
+  const r=want?await sb.from("progress").insert({user_id:me.id,day:d,item:i}):await sb.from("progress").delete().match({user_id:me.id,day:d,item:i});
+  if(r.error){box.checked=!want;$("sErr").textContent="Could not save. Check your connection and try again.";return}
+  want?done[key]=1:delete done[key];paint();
+}
+
+/* ---------- Director ---------- */
+async function adminInit(){
+  show("admin");$("sd").value=start;await loadClass();
+}
+async function loadClass(){
+  const r=await sb.rpc("class_summary");if(r.error){$("rows").innerHTML="<tr><td class='err'>"+esc(r.error.message)+"</td></tr>";return}
+  const t=dayNow(),cap=Math.min(Math.max(t,0),90),S=r.data||[],g={done:[],part:[],none:[]};
+  $("aTitle").textContent=t<1?"Course has not started":"Today is day "+cap+" of 90";
+  const rows=S.map(s=>{const days=s.days||{};let full=0;for(let d=1;d<=cap;d++)if((days[d]||0)>=need(d))full++;
+    const c=days[cap]||0;(c>=need(cap)?g.done:c>0?g.part:g.none).push(s.full_name);
+    let strip="";for(let d=1;d<=90;d++){const k=days[d]||0;strip+="<i class='"+(k>=need(d)?"f":k?"p":"")+"' title='Day "+d+": "+k+"/"+need(d)+"'></i>"}
+    const last=s.last_active?new Date(s.last_active).toLocaleDateString(undefined,{day:"numeric",month:"short"}):"Never";
+    return"<tr><td>"+esc(s.full_name)+"</td><td>"+full+"</td><td>"+Math.max(cap-full,0)+" days</td><td>"+last+"</td><td><span class='strip'>"+strip+"</span></td></tr>"}).join("");
+  $("rows").innerHTML=rows||"<tr><td class='mute'>No students have signed up yet.</td></tr>";
+  [["Done","done"],["Part","part"],["None","none"]].forEach(([a,b])=>{$("n"+a).textContent=g[b].length;$("l"+a).textContent=g[b].join(", ")});
+}
+$("refresh").onclick=loadClass;
+$("saveSd").onclick=async()=>{const v=$("sd").value;if(!v)return;const r=await sb.from("settings").update({start_date:v}).eq("id",1);
+  if(r.error){alert(r.error.message);return}start=v;loadClass()};
+
+boot();
+</script>
+</body>
+</html>
