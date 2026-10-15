@@ -32,6 +32,16 @@ label.it input{width:22px;height:22px;flex:none;accent-color:var(--acc)}
 .tw{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:.92rem}
 th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
 .strip{display:inline-flex;gap:1px;vertical-align:middle}.strip i{width:4px;height:16px;background:var(--l1)}.strip i.p{background:var(--l2)}.strip i.f{background:var(--ok)}
+.rowb{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center;margin-bottom:8px}
+.snap.four{margin-top:10px;grid-template-columns:repeat(4,1fr)}
+.b{display:inline-block;padding:1px 10px;border-radius:99px;border:1px solid var(--line);font-size:.85rem}
+.b.Atrisk{border-color:var(--red);color:var(--red);font-weight:600}.b.Slipping{border-color:var(--warn);color:var(--warn)}.b.Ontrack{border-color:var(--ok);color:var(--ok)}
+.lnk{background:none;border:none;padding:0;color:var(--acc);text-decoration:underline;cursor:pointer}
+th button{background:none;border:none;padding:0;font-weight:600}
+.tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}.tools input{max-width:240px;margin:0}
+.chart{display:flex;align-items:flex-end;gap:2px;height:90px;border-bottom:1px solid var(--line);margin-bottom:10px}.chart i{flex:1;background:var(--ok);min-width:2px;border-radius:2px 2px 0 0}
+ul.plain{margin:0;padding-left:20px}
+@media(max-width:560px){.snap{grid-template-columns:1fr}.snap.four{grid-template-columns:1fr 1fr}}
 [hidden]{display:none!important}
 </style>
 </head>
@@ -66,21 +76,52 @@ th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);white
 
 <section id="admin" hidden>
   <div class="card">
-    <h2 id="aTitle">Today</h2>
+    <div class="rowb"><h2 id="aTitle" style="margin:0">Today</h2><div><span class="mute" id="upd"></span> <button id="refresh">Refresh</button></div></div>
     <div class="snap">
       <div><b id="nDone">0</b>Finished everything<small id="lDone" class="mute"></small></div>
       <div><b id="nPart">0</b>Started, not finished<small id="lPart" class="mute"></small></div>
       <div><b id="nNone">0</b>Not started<small id="lNone" class="mute"></small></div>
     </div>
+    <div class="snap four" id="stats"></div>
+    <p class="mute" style="margin:8px 0 0">This page refreshes itself every minute.</p>
   </div>
+
+  <div class="card">
+    <h2>Needs attention</h2>
+    <p class="mute" style="margin-top:0">At risk means 3 or more days behind, no activity for 3 or more days, or nothing ticked since the course started.</p>
+    <ul class="plain" id="attnL"></ul>
+  </div>
+
   <div class="card">
     <h2>Class progress</h2>
-    <div class="tw"><table><thead><tr><th>Student</th><th>Days complete</th><th>Behind by</th><th>Last active</th><th>Days 1 to 90</th></tr></thead><tbody id="rows"></tbody></table></div>
+    <div class="tools"><label for="q" class="mute">Search</label><input id="q" type="text" placeholder="Student name"> <button id="csv">Export CSV</button></div>
+    <div class="tw"><table><thead><tr>
+      <th data-k="name"><button>Student</button></th><th data-k="status"><button>Status</button></th><th data-k="full"><button>Days complete</button></th><th data-k="behind"><button>Behind by</button></th><th data-k="st"><button>Streak</button></th><th data-k="ts"><button>Last active</button></th><th>Days 1 to 90</th>
+    </tr></thead><tbody id="rows"></tbody></table></div>
+    <p class="mute">Click a student's name to see exactly what they ticked and when.</p>
   </div>
+
+  <div class="card" id="det" hidden>
+    <div class="rowb"><h2 id="dName" style="margin:0"></h2><button id="dClose">Close</button></div>
+    <p class="mute" id="dSum"></p>
+    <div class="days" id="dGrid"></div>
+    <h3 id="dDay" style="margin:12px 0 6px"></h3>
+    <p class="err" id="dFlag" role="status"></p>
+    <ul class="plain" id="dItems"></ul>
+  </div>
+
+  <div class="card">
+    <h2>Completion by day</h2>
+    <p class="mute" style="margin-top:0">Each bar is one day of the course: how much of the class has finished it. Short bars mean a hard day.</p>
+    <div class="chart" id="chart" role="img" aria-label="Class completion rate for each day so far"></div>
+    <h3 style="margin:0 0 6px">Hardest days so far</h3>
+    <ul class="plain" id="hard"></ul>
+  </div>
+
   <div class="card">
     <h2>Course start date</h2>
     <p class="mute">Day 1 of the 90 days. Students unlock one new day per calendar day from this date.</p>
-    <input type="date" id="sd" style="max-width:220px"> <button id="saveSd">Save start date</button> <button id="refresh">Refresh</button>
+    <input type="date" id="sd" style="max-width:220px"> <button id="saveSd">Save start date</button>
   </div>
 </section>
 </div>
@@ -89,7 +130,6 @@ th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);white
 <script src="curriculum.js"></script>
 <script>
 // 1. PASTE YOUR SUPABASE PROJECT VALUES (Project Settings > API). The anon key is meant to be public.
-// const SB_URL="PASTE_PROJECT_URL", SB_KEY="PASTE_ANON_KEY";
 const SB_URL="https://dktyiiagfxaygdsmetmd.supabase.co", SB_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRrdHlpaWFnZnhheWdkc21ldG1kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE5MjE3NTgsImV4cCI6MjEwNzQ5Nzc1OH0.R_wJQczUsKfpTe6DblwjiqlzjCJY83z_P6ExaXy0vTY";
 const sb=supabase.createClient(SB_URL,SB_KEY);
 const $=id=>document.getElementById(id);
@@ -147,24 +187,89 @@ async function tick(d,i,box){
 }
 
 /* ---------- Director ---------- */
-async function adminInit(){
-  show("admin");$("sd").value=start;await loadClass();
-}
+const RK={"At risk":0,"Slipping":1,"Not started":2,"On track":3};
+let ROWS=[],CAP=0,sortK="status",sortD=1,flt="",DET=null;
+const sod=d=>new Date(d.getFullYear(),d.getMonth(),d.getDate());
+const ago=r=>r.ts?(r.idle===0?"Today":r.idle===1?"Yesterday":r.idle+" days ago"):"Never";
+const fdt=t=>new Date(t).toLocaleString(undefined,{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
+async function adminInit(){show("admin");$("sd").value=start;await loadClass()}
 async function loadClass(){
-  const r=await sb.rpc("class_summary");if(r.error){$("rows").innerHTML="<tr><td class='err'>"+esc(r.error.message)+"</td></tr>";return}
-  const t=dayNow(),cap=Math.min(Math.max(t,0),90),S=r.data||[],g={done:[],part:[],none:[]};
+  const r=await sb.rpc("class_summary");
+  if(r.error){$("rows").innerHTML="<tr><td class='err'>"+esc(r.error.message)+"</td></tr>";return}
+  const t=dayNow(),cap=Math.min(Math.max(t,0),90),today=sod(new Date());CAP=cap;
+  ROWS=(r.data||[]).map(s=>{
+    const days=s.days||{};let full=0;for(let d=1;d<=cap;d++)if((days[d]||0)>=need(d))full++;
+    let st=0,d=cap;if(d>=1&&(days[d]||0)<need(d))d--;while(d>=1&&(days[d]||0)>=need(d)){st++;d--}
+    const ts=s.last_active?new Date(s.last_active):null,idle=ts?Math.round((today-sod(ts))/864e5):null,behind=Math.max(cap-full,0);
+    const status=!ts?(cap>=3?"At risk":"Not started"):(behind>=3||idle>=3)?"At risk":behind>=1?"Slipping":"On track";
+    const c=days[cap]||0;
+    return{id:s.user_id,name:s.full_name,days,full,behind,st,ts,idle,status,c:c>=need(cap)?2:c>0?1:0};
+  });
+  $("upd").textContent="Updated "+new Date().toLocaleTimeString(undefined,{hour:"2-digit",minute:"2-digit"});
   $("aTitle").textContent=t<1?"Course has not started":"Today is day "+cap+" of 90";
-  const rows=S.map(s=>{const days=s.days||{};let full=0;for(let d=1;d<=cap;d++)if((days[d]||0)>=need(d))full++;
-    const c=days[cap]||0;(c>=need(cap)?g.done:c>0?g.part:g.none).push(s.full_name);
-    let strip="";for(let d=1;d<=90;d++){const k=days[d]||0;strip+="<i class='"+(k>=need(d)?"f":k?"p":"")+"' title='Day "+d+": "+k+"/"+need(d)+"'></i>"}
-    const last=s.last_active?new Date(s.last_active).toLocaleDateString(undefined,{day:"numeric",month:"short"}):"Never";
-    return"<tr><td>"+esc(s.full_name)+"</td><td>"+full+"</td><td>"+Math.max(cap-full,0)+" days</td><td>"+last+"</td><td><span class='strip'>"+strip+"</span></td></tr>"}).join("");
-  $("rows").innerHTML=rows||"<tr><td class='mute'>No students have signed up yet.</td></tr>";
-  [["Done","done"],["Part","part"],["None","none"]].forEach(([a,b])=>{$("n"+a).textContent=g[b].length;$("l"+a).textContent=g[b].join(", ")});
+  snapshot();attention();table();chart();
 }
+function snapshot(){
+  const g={Done:[],Part:[],None:[]};ROWS.forEach(r=>(r.c===2?g.Done:r.c?g.Part:g.None).push(r.name));
+  for(const k in g){$("n"+k).textContent=g[k].length;$("l"+k).textContent=g[k].join(", ")}
+  const n=ROWS.length,act=ROWS.filter(r=>r.idle===0).length,risk=ROWS.filter(r=>r.status==="At risk").length;
+  const avg=n&&CAP?Math.round(ROWS.reduce((a,r)=>a+r.full,0)*100/(n*CAP)):0;
+  $("stats").innerHTML=[[n,"Students"],[act,"Active today"],[avg+"%","Average completion"],[risk,"At risk"]].map(x=>"<div><b>"+x[0]+"</b>"+x[1]+"</div>").join("");
+}
+function why(r){const a=[];if(!r.ts)a.push("has never ticked anything");else{if(r.behind>=3)a.push(r.behind+" days behind");if(r.idle>=3)a.push("no activity for "+r.idle+" days")}return a.join(", ")}
+function attention(){
+  const L=ROWS.filter(r=>r.status==="At risk").sort((a,b)=>b.behind-a.behind);
+  $("attnL").innerHTML=L.length?L.map(r=>"<li><button class='lnk' data-id='"+r.id+"'>"+esc(r.name)+"</button>: "+why(r)+"</li>").join(""):"<li class='mute'>Nobody needs attention right now.</li>";
+}
+const val=(r,k)=>k==="name"?r.name.toLowerCase():k==="status"?RK[r.status]:k==="ts"?(r.ts?+r.ts:0):r[k];
+function table(){
+  const f=flt.toLowerCase();
+  const L=ROWS.filter(r=>r.name.toLowerCase().includes(f)).sort((a,b)=>{const x=val(a,sortK),y=val(b,sortK);return(x<y?-1:x>y?1:0)*sortD||b.behind-a.behind});
+  document.querySelectorAll("th[data-k]").forEach(th=>th.setAttribute("aria-sort",th.dataset.k===sortK?(sortD>0?"ascending":"descending"):"none"));
+  $("rows").innerHTML=L.map(r=>{let strip="";for(let d=1;d<=90;d++){const c=r.days[d]||0;strip+="<i class='"+(c>=need(d)?"f":c?"p":"")+"' title='Day "+d+": "+c+"/"+need(d)+"'></i>"}
+    return"<tr><td><button class='lnk' data-id='"+r.id+"'>"+esc(r.name)+"</button></td><td><span class='b "+r.status.replace(" ","")+"'>"+r.status+"</span></td><td>"+r.full+"</td><td>"+r.behind+"</td><td>"+r.st+"</td><td>"+ago(r)+"</td><td><span class='strip'>"+strip+"</span></td></tr>"}).join("")||"<tr><td class='mute' colspan='7'>No students found.</td></tr>";
+}
+function chart(){
+  const n=ROWS.length,P=[];
+  for(let d=1;d<=CAP;d++)P.push({d,p:n?ROWS.filter(r=>(r.days[d]||0)>=need(d)).length/n:0});
+  $("chart").innerHTML=P.map(x=>"<i style='height:"+Math.max(x.p*100,2)+"%' title='Day "+x.d+": "+Math.round(x.p*100)+"% finished'></i>").join("");
+  const h=P.filter(x=>x.p<1).sort((a,b)=>a.p-b.p).slice(0,3);
+  $("hard").innerHTML=n&&h.length?h.map(x=>"<li>Day "+x.d+": "+esc(C[x.d-1].split("|")[0].trim())+" ("+Math.round(x.p*100)+"% finished)</li>").join(""):"<li class='mute'>No data yet.</li>";
+}
+async function openStudent(id){
+  const row=ROWS.find(r=>r.id===id);if(!row)return;
+  const r=await sb.from("progress").select("day,item,done_at").eq("user_id",id);
+  if(r.error){alert(r.error.message);return}
+  const m={};(r.data||[]).forEach(x=>(m[x.day]=m[x.day]||{})[x.item]=x.done_at);
+  DET={row,m,sel:Math.max(Math.min(CAP,90),1)};$("det").hidden=false;paintDet();$("det").scrollIntoView({behavior:"smooth"});
+}
+function paintDet(){
+  const{row,m,sel:sd}=DET,g=$("dGrid");g.innerHTML="";
+  $("dName").textContent=row.name;
+  $("dSum").textContent=row.full+" days complete, "+row.behind+" behind, streak "+row.st+", last active: "+ago(row).toLowerCase();
+  for(let d=1;d<=90;d++){const c=Object.keys(m[d]||{}).length,b=document.createElement("button");b.textContent=d;
+    b.className=(c>=need(d)?"full":c?"part":"")+(d===sd?" sel":"")+(d>CAP?" lock":"");
+    b.setAttribute("aria-label","Day "+d+", "+c+" of "+need(d));b.onclick=()=>{DET.sel=d;paintDet()};g.append(b)}
+  const tk=m[sd]||{},ts=Object.values(tk).map(x=>+new Date(x)),L=$("dItems");L.innerHTML="";
+  $("dDay").textContent="Day "+sd+": "+Object.keys(tk).length+" of "+need(sd)+" ticked";
+  dayItems(sd).forEach((txt,i)=>{const t=tk[i+1],li=document.createElement("li");li.textContent=(t?"Done ("+fdt(t)+"): ":"Not done: ")+txt;L.append(li)});
+  const span=ts.length?(Math.max(...ts)-Math.min(...ts))/6e4:0;
+  $("dFlag").textContent=ts.length>=5&&span<3?"All items were ticked within "+Math.max(Math.round(span),1)+" minute(s), which may not reflect real study time.":"";
+}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-id]");if(b)openStudent(b.dataset.id)});
+document.querySelector("thead").onclick=e=>{const th=e.target.closest("th[data-k]");if(!th)return;const k=th.dataset.k;
+  if(k===sortK)sortD*=-1;else{sortK=k;sortD=(k==="name"||k==="status")?1:-1}table()};
+$("q").oninput=e=>{flt=e.target.value;table()};
+$("dClose").onclick=()=>{$("det").hidden=true};
 $("refresh").onclick=loadClass;
+$("csv").onclick=()=>{
+  const q=v=>'"'+String(v).replace(/"/g,'""').replace(/^([=+\-@])/,"'$1")+'"';
+  const rows=[["Student","Status","Days complete","Behind by","Streak","Last active"],...ROWS.map(r=>[r.name,r.status,r.full,r.behind,r.st,r.ts?r.ts.toISOString().slice(0,10):"Never"])];
+  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([rows.map(r=>r.map(q).join(",")).join("\n")],{type:"text/csv"}));a.download="class-progress.csv";a.click();
+};
 $("saveSd").onclick=async()=>{const v=$("sd").value;if(!v)return;const r=await sb.from("settings").update({start_date:v}).eq("id",1);
   if(r.error){alert(r.error.message);return}start=v;loadClass()};
+setInterval(()=>{if(!document.hidden&&prof&&prof.role==="admin")loadClass()},60000);
 
 boot();
 </script>
